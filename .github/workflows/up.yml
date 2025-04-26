@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  bet-up:
+  auto-bet:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,8 +20,8 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium
 
-
       - name: Run script for UP
+        continue-on-error: true
         env:
           userid: ${{ secrets.USERID }}
           pw: ${{ secrets.PW }}
@@ -30,22 +30,6 @@ jobs:
           MODE_SITE: up
         run: |
           python main.py
-
-  bet-indra:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install playwright python-dotenv requests
-          playwright install chromium
 
       - name: Run script for INDRA
         env:
