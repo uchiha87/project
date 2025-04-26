@@ -1,0 +1,56 @@
+name: Up Auto
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-hokii:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install chromium
+
+      - name: Jalankan Bot 1
+        run: |
+          echo "Running main.py"
+          output=$(python main.py)
+          echo "$output"
+          if echo "$output" | grep -q "✅"; then
+            echo "✅ main.py sukses"
+          else
+            echo "❌ main.py gagal"
+          fi
+        continue-on-error: true
+        env:
+          userid: ${{ secrets.USERID }}
+          pw: ${{ secrets.PW }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Jalankan Bot 2
+        run: |
+          echo "Running main2.py"
+          output=$(python main2.py)
+          echo "$output"
+          if echo "$output" | grep -q "✅"; then
+            echo "✅ main2.py sukses"
+          else
+            echo "❌ main2.py gagal"
+            exit 1
+          fi
+        env:
+          userid: ${{ secrets.USERID }}
+          pw: ${{ secrets.PW }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

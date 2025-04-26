@@ -1,0 +1,20 @@
+name: Scheduled config.txt Commit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  commit-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v3
+
+      - name: Salin config.txt baru ke root
+        run: |
+          cp update_staged/config.txt config.txt
+          git config user.name "radit"
+          git config user.email "radit@mcoel.com"
+          git add config.txt
+          git commit -m "Scheduled update for config.txt at 23:00 WIB"
+          git push origin main
