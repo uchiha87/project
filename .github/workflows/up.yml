@@ -1,7 +1,7 @@
-name: Auto 
+name: Auto
 on:
   workflow_dispatch:
-  
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -34,9 +34,11 @@ jobs:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
+        NOW=$(date -u '+%Y-%m-%d %H:%M:%S')
+        NOW_WIB=$(date -d "$NOW +7 hours" '+%Y-%m-%d %H:%M:%S')
         curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
         -d chat_id=${TELEGRAM_CHAT_ID} \
-        -d text="✅ Workflow *BERHASIL* pada $(date '+%Y-%m-%d %H:%M:%S') WIB" \
+        -d text="✅ Workflow *BERHASIL* pada ${NOW_WIB} WIB" \
         -d parse_mode=Markdown
 
     - name: Kirim Notifikasi Telegram (Failed)
@@ -45,7 +47,10 @@ jobs:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
+        NOW=$(date -u '+%Y-%m-%d %H:%M:%S')
+        NOW_WIB=$(date -d "$NOW +7 hours" '+%Y-%m-%d %H:%M:%S')
         curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
         -d chat_id=${TELEGRAM_CHAT_ID} \
-        -d text="❌ Workflow *GAGAL* pada $(date '+%Y-%m-%d %H:%M:%S') WIB" \
+        -d text="❌ Workflow *GAGAL* pada ${NOW_WIB} WIB" \
         -d parse_mode=Markdown
+
