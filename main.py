@@ -38,35 +38,32 @@ def kirim_telegram_log(pesan: str):
 
 def parse_nomorbet(nomorbet: str):
     try:
-        kombinasi, nominal = nomorbet.split('#')
-        jumlah_kombinasi = len(kombinasi.split('*'))
-        return jumlah_kombinasi, int(nominal)
+        kombinasi = nomorbet.split('*')
+        return len(kombinasi)
     except:
-        return 0, 0
+        return 0
 
 def wib():
     return datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
 
 def run(playwright: Playwright) -> int:
-    nomorbet = baca_file("config.txt")
-    jumlah_kombinasi, bet = parse_nomorbet(nomorbet)
-    total_bet_rupiah = bet * jumlah_kombinasi
+    nomor_saja = baca_file("config.txt")  # cuma nomor doang
     sites = baca_file_list("site.txt")
 
     pw_env = os.getenv("pw")
     ada_error = False
 
     for entry in sites:
-        if ':' in entry:
-            site, userid_site = entry.split(':', 1)
-        else:
-            site = entry
-            userid_site = os.getenv("userid")  # fallback kalau username nggak ada
-
-        full_url = f"https://{site}/lite"
-        label = f"[{site.upper()}]"
-
         try:
+            # ambil site, username, bet
+            site, userid_site, bet = entry.split(':')
+            full_url = f"https://{site}/lite"
+            label = f"[{site.upper()}]"
+
+            nomorbet = nomor_saja + "#" + bet
+            jumlah_kombinasi = parse_nomorbet(nomor_saja)
+            total_bet_rupiah = int(bet) * jumlah_kombinasi
+
             print(f"🌐 Membuka browser untuk {site}...")
             browser = playwright.chromium.launch(headless=True)
             context = browser.new_context(**playwright.devices["Pixel 7"])
@@ -99,9 +96,8 @@ def run(playwright: Playwright) -> int:
             time.sleep(2)
             try:
                 saldo = page.locator("#bal-text").inner_text()
-            except Exception as e:
+            except:
                 saldo = "tidak diketahui"
-                print(f"⚠️ Gagal ambil saldo di {site}:", e)
 
             pesan_sukses = (
                 f"[SUKSES]\n"
