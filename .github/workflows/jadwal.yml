@@ -1,4 +1,4 @@
-name: Scheduled config.txt Commit
+name: Scheduled site
 
 on:
   workflow_dispatch:
@@ -10,11 +10,11 @@ jobs:
       - name: Checkout kode
         uses: actions/checkout@v3
 
-      - name: Salin config.txt baru ke root
+      - name: Salin site.txt baru ke root
         run: |
-          cp update_staged/config.txt config.txt
+          cp update_staged/site.txt site.txt
           git config user.name "radit"
           git config user.email "radit@mcoel.com"
-          git add config.txt
-          git commit -m "Scheduled update for config.txt at 23:00 WIB"
+          git add site.txt
+          git commit -m "Scheduled update for site.txt at 23:00 WIB"
           git push origin main
