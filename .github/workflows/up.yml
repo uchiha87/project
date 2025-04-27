@@ -2,8 +2,6 @@ name: Auto Bet Runner
 
 on:
   workflow_dispatch: # Bisa manual klik Run Workflow
-  schedule:
-    - cron: "0 5 * * *" # (Opsional) jalan tiap hari jam 5 pagi UTC (jam 12 WIB)
 
 jobs:
   run-script:
