@@ -4,12 +4,7 @@ from datetime import datetime
 import pytz
 import requests
 import os
-import re
 import sys
-
-# Tidak perlu load dotenv lagi
-# from dotenv import load_dotenv
-# load_dotenv()
 
 userid = os.getenv("userid")
 pw = os.getenv("pw")
@@ -54,11 +49,13 @@ def parse_nomorbet(nomorbet: str):
     except:
         return 0, 0
 
-def run(playwright: Playwright) -> None:
+def run(playwright: Playwright) -> int:
     nomorbet = baca_file("config.txt")
     jumlah_kombinasi, bet = parse_nomorbet(nomorbet)
     total_bet_rupiah = bet * jumlah_kombinasi
     sites = baca_file_list("site.txt")
+
+    ada_error = False
 
     for site in sites:
         full_url = f"https://{site}/lite"
@@ -113,7 +110,9 @@ def run(playwright: Playwright) -> None:
 
             context.close()
             browser.close()
+
         except Exception as e:
+            ada_error = True
             print(f"❌ Error di {site}: {e}")
             try:
                 saldo = page.locator("#bal-text").inner_text()
@@ -130,10 +129,16 @@ def run(playwright: Playwright) -> None:
             )
             kirim_telegram_log(pesan_gagal)
 
-            context.close()
-            browser.close()
-            continue  # Lanjut ke site berikutnya
+            try:
+                context.close()
+                browser.close()
+            except:
+                pass
+            continue
+
+    return 1 if ada_error else 0
 
 if __name__ == "__main__":
     with sync_playwright() as playwright:
-        run(playwright)
+        exit_code = run(playwright)
+        sys.exit(exit_code)
