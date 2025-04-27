@@ -17,7 +17,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install playwright requests
+        pip install playwright requests python-dotenv pytz
         playwright install chromium
 
     - name: Jalankan Script
