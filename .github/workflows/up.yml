@@ -28,17 +28,22 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: python main.py
 
+    - name: Ambil waktu WIB
+      id: waktu_wib
+      run: |
+        # Ambil waktu Asia/Jakarta dari API worldtimeapi
+        WIB_TIME=$(curl -s 'http://worldtimeapi.org/api/timezone/Asia/Jakarta' | jq -r '.datetime' | cut -d'.' -f1 | sed 's/T/ /')
+        echo "waktu_wib=$WIB_TIME" >> "$GITHUB_OUTPUT"
+
     - name: Kirim Notifikasi Telegram (Success)
       if: success()
       env:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
-        NOW=$(date -u '+%Y-%m-%d %H:%M:%S')
-        NOW_WIB=$(date -d "$NOW +7 hours" '+%Y-%m-%d %H:%M:%S')
         curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
         -d chat_id=${TELEGRAM_CHAT_ID} \
-        -d text="✅ Workflow *BERHASIL* pada ${NOW_WIB} WIB" \
+        -d text="✅ Workflow *BERHASIL* pada ${{ steps.waktu_wib.outputs.waktu_wib }} WIB" \
         -d parse_mode=Markdown
 
     - name: Kirim Notifikasi Telegram (Failed)
@@ -47,10 +52,7 @@ jobs:
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
-        NOW=$(date -u '+%Y-%m-%d %H:%M:%S')
-        NOW_WIB=$(date -d "$NOW +7 hours" '+%Y-%m-%d %H:%M:%S')
         curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
         -d chat_id=${TELEGRAM_CHAT_ID} \
-        -d text="❌ Workflow *GAGAL* pada ${NOW_WIB} WIB" \
+        -d text="❌ Workflow *GAGAL* pada ${{ steps.waktu_wib.outputs.waktu_wib }} WIB" \
         -d parse_mode=Markdown
-
