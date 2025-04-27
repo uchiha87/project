@@ -1,31 +1,52 @@
-name: Auto Bet Runner
-
+name: Auto 
 on:
-  workflow_dispatch: # Bisa manual klik Run Workflow
+  workflow_dispatch:
+  schedule:
 
 jobs:
-  run-script:
+  run:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
+    - name: Checkout repo
       uses: actions/checkout@v4
 
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'  # Boleh ganti versi kalau mau
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
+        pip install playwright requests
         playwright install chromium
 
-    - name: Run Python script
+    - name: Jalankan Script
       env:
         userid: ${{ secrets.USERID }}
         pw: ${{ secrets.PW }}
         TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: python main.py
+
+    - name: Kirim Notifikasi Telegram (Success)
+      if: success()
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
-        python main.py
+        curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
+        -d chat_id=${TELEGRAM_CHAT_ID} \
+        -d text="✅ Workflow *BERHASIL* pada $(date '+%Y-%m-%d %H:%M:%S') WIB" \
+        -d parse_mode=Markdown
+
+    - name: Kirim Notifikasi Telegram (Failed)
+      if: failure()
+      env:
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
+        -d chat_id=${TELEGRAM_CHAT_ID} \
+        -d text="❌ Workflow *GAGAL* pada $(date '+%Y-%m-%d %H:%M:%S') WIB" \
+        -d parse_mode=Markdown
