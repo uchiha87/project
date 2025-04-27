@@ -6,13 +6,6 @@ import requests
 import os
 import sys
 
-userid = os.getenv("userid")
-pw = os.getenv("pw")
-telegram_token = os.getenv("TELEGRAM_TOKEN")
-telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
-
-wib = lambda: datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
-
 def baca_file(file_name: str) -> str:
     with open(file_name, 'r') as file:
         return file.read().strip()
@@ -22,6 +15,8 @@ def baca_file_list(file_name: str) -> list:
         return [line.strip() for line in file if line.strip()]
 
 def kirim_telegram_log(pesan: str):
+    telegram_token = os.getenv("TELEGRAM_TOKEN")
+    telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
     print(pesan)
     if telegram_token and telegram_chat_id:
         try:
@@ -49,15 +44,25 @@ def parse_nomorbet(nomorbet: str):
     except:
         return 0, 0
 
+def wib():
+    return datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
+
 def run(playwright: Playwright) -> int:
     nomorbet = baca_file("config.txt")
     jumlah_kombinasi, bet = parse_nomorbet(nomorbet)
     total_bet_rupiah = bet * jumlah_kombinasi
     sites = baca_file_list("site.txt")
 
+    pw_env = os.getenv("pw")
     ada_error = False
 
-    for site in sites:
+    for entry in sites:
+        if ':' in entry:
+            site, userid_site = entry.split(':', 1)
+        else:
+            site = entry
+            userid_site = os.getenv("userid")  # fallback kalau username nggak ada
+
         full_url = f"https://{site}/lite"
         label = f"[{site.upper()}]"
 
@@ -68,8 +73,8 @@ def run(playwright: Playwright) -> int:
             page = context.new_page()
 
             page.goto(full_url)
-            page.locator("#entered_login").fill(userid)
-            page.locator("#entered_password").fill(pw)
+            page.locator("#entered_login").fill(userid_site)
+            page.locator("#entered_password").fill(pw_env)
             page.get_by_role("button", name="Login").click()
 
             print(f"🔐 Login ke {site} berhasil, masuk menu Pools > HOKIDRAW > 4D Classic")
