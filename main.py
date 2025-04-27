@@ -105,7 +105,7 @@ def run(playwright: Playwright) -> int:
 
             pesan_sukses = (
                 f"[SUKSES]\n"
-                f"{label}\n"
+                f"{userid}\n"
                 f"🎯 TOTAL {jumlah_kombinasi} HARGA Rp. {bet}\n"
                 f"💸 BAYAR Rp. {total_bet_rupiah}\n"
                 f"💰 SALDO Rp. {saldo}\n"
@@ -126,7 +126,7 @@ def run(playwright: Playwright) -> int:
 
             pesan_gagal = (
                 f"[GAGAL]\n"
-                f"{label}\n"
+                f"{userid}\n"
                 f"❌ TOTAL {jumlah_kombinasi} HARGA Rp. {bet}\n"
                 f"💸 BAYAR Rp. {total_bet_rupiah}\n"
                 f"💰 SALDO Rp. {saldo}\n"
