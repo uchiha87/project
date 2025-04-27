@@ -1,42 +1,34 @@
-name: Auto Bet UP & INDRA
+name: Auto Bet Runner
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Bisa manual klik Run Workflow
+  schedule:
+    - cron: "0 5 * * *" # (Opsional) jalan tiap hari jam 5 pagi UTC (jam 12 WIB)
 
 jobs:
-  auto-bet:
+  run-script:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'  # Boleh ganti versi kalau mau
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          playwright install chromium
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install playwright
+        playwright install chromium
 
-      - name: Run script for UP
-        continue-on-error: true
-        env:
-          userid: ${{ secrets.USERID }}
-          pw: ${{ secrets.PW }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          MODE_SITE: up
-        run: |
-          python main.py
-
-      - name: Run script for INDRA
-        env:
-          userid: ${{ secrets.USERID }}
-          pw: ${{ secrets.PW }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          MODE_SITE: indra
-        run: |
-          python main.py
+    - name: Run Python script
+      env:
+        userid: ${{ secrets.USERID }}
+        pw: ${{ secrets.PW }}
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        python main.py
