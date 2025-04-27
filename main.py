@@ -4,27 +4,21 @@ from datetime import datetime
 import pytz
 import requests
 import os
-import re
 import sys
 
-# Tidak perlu load dotenv lagi
-# from dotenv import load_dotenv
-# load_dotenv()
-
+# Load dari environment atau GitHub Secret
 userid = os.getenv("userid")
 pw = os.getenv("pw")
 telegram_token = os.getenv("TELEGRAM_TOKEN")
 telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
-wib = lambda: datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
+# Waktu lokal WIB
+def waktu_wib():
+    return datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
 
 def baca_file(file_name: str) -> str:
     with open(file_name, 'r') as file:
         return file.read().strip()
-
-def baca_file_list(file_name: str) -> list:
-    with open(file_name, 'r') as file:
-        return [line.strip() for line in file if line.strip()]
 
 def kirim_telegram_log(pesan: str):
     print(pesan)
@@ -54,86 +48,105 @@ def parse_nomorbet(nomorbet: str):
     except:
         return 0, 0
 
-def run(playwright: Playwright) -> None:
-    nomorbet = baca_file("config.txt")
-    jumlah_kombinasi, bet = parse_nomorbet(nomorbet)
-    total_bet_rupiah = bet * jumlah_kombinasi
-    sites = baca_file_list("site.txt")
+def get_url_and_label(mode_site: str):
+    mode_site = mode_site.lower()
+    if mode_site == "up":
+        return "https://up39987.com/lite", "[UP]"
+    elif mode_site == "indra":
+        return "https://indratogel31303.com/lite", "[INDRA]"
+    else:
+        # Kalau mau tambah site lain tinggal diatur disini
+        print(f"❌ MODE_SITE '{mode_site}' tidak dikenali.")
+        return None, None
 
-    for site in sites:
-        full_url = f"https://{site}/lite"
-        label = f"[{site.upper()}]"
+def run_for_site(playwright: Playwright, mode_site: str) -> bool:
+    url, label = get_url_and_label(mode_site)
+    if not url:
+        return False  # langsung anggap gagal kalau URL tidak valid
 
-        try:
-            print(f"🌐 Membuka browser untuk {site}...")
-            browser = playwright.chromium.launch(headless=True)
-            context = browser.new_context(**playwright.devices["Pixel 7"])
-            page = context.new_page()
+    try:
+        print(f"🌐 Memproses {label} - {url}")
+        browser = playwright.chromium.launch(headless=True)
+        context = browser.new_context(**playwright.devices["Pixel 7"])
+        page = context.new_page()
 
-            page.goto(full_url)
-            page.locator("#entered_login").fill(userid)
-            page.locator("#entered_password").fill(pw)
-            page.get_by_role("button", name="Login").click()
+        page.goto(url)
+        page.locator("#entered_login").fill(userid)
+        page.locator("#entered_password").fill(pw)
+        page.get_by_role("button", name="Login").click()
 
-            print(f"🔐 Login ke {site} berhasil, masuk menu Pools > HOKIDRAW > 4D Classic")
-            page.get_by_role("link", name="Pools").click()
-            page.get_by_role("link", name="HOKIDRAW").click()
-            time.sleep(2)
-            page.get_by_role("button", name="4D Classic").click()
-            time.sleep(2)
+        page.get_by_role("link", name="Pools").click()
+        page.get_by_role("link", name="HOKIDRAW").click()
+        time.sleep(2)
+        page.get_by_role("button", name="4D Classic").click()
+        time.sleep(2)
 
-            print(f"🧾 Mengisi form taruhan di {site}...")
-            page.get_by_role("cell", name="BET FULL").click()
-            page.locator("#tebak").fill(nomorbet)
-            page.once("dialog", lambda dialog: dialog.accept())
+        nomorbet = baca_file("config.txt")
+        jumlah_kombinasi, bet = parse_nomorbet(nomorbet)
+        total_bet_rupiah = bet * jumlah_kombinasi
 
-            print(f"📨 Mengirim taruhan di {site}...")
-            page.get_by_role("button", name="KIRIM").click()
+        page.get_by_role("cell", name="BET FULL").click()
+        page.locator("#tebak").fill(nomorbet)
+        page.once("dialog", lambda dialog: dialog.accept())
 
-            page.wait_for_selector("text=Bet Sukses!!", timeout=15000)
+        page.get_by_role("button", name="KIRIM").click()
 
-            page.get_by_role("link", name="Back to Menu").click()
-            page.reload()
-            time.sleep(2)
-            try:
-                saldo = page.locator("#bal-text").inner_text()
-            except Exception as e:
-                saldo = "tidak diketahui"
-                print(f"⚠️ Gagal ambil saldo di {site}:", e)
+        print("⏳ Menunggu konfirmasi...")
+        page.wait_for_selector("text=Bet Sukses!!", timeout=15000)
 
-            pesan_sukses = (
-                f"[SUKSES]\n"
-                f"{label}\n"
-                f"🎯 TOTAL {jumlah_kombinasi} HARGA Rp. {bet}\n"
-                f"💸 BAYAR Rp. {total_bet_rupiah}\n"
-                f"💰 SALDO Rp. {saldo}\n"
-                f"⌚ {wib()}"
-            )
-            kirim_telegram_log(pesan_sukses)
+        saldo = page.locator("#bal-text").inner_text()
 
-            context.close()
-            browser.close()
-        except Exception as e:
-            print(f"❌ Error di {site}: {e}")
-            try:
-                saldo = page.locator("#bal-text").inner_text()
-            except:
-                saldo = "tidak diketahui"
+        pesan = (
+            "[SUKSES]\n"
+            f"{label}\n"
+            f"🎯 TOTAL {jumlah_kombinasi} HARGA Rp. {bet}\n"
+            f"💸 BAYAR Rp. {total_bet_rupiah}\n"
+            f"💰 SALDO KAMU Rp. {saldo}\n"
+            f"⌚ {waktu_wib()}"
+        )
+        kirim_telegram_log(pesan)
 
-            pesan_gagal = (
-                f"[GAGAL]\n"
-                f"{label}\n"
-                f"❌ TOTAL {jumlah_kombinasi} HARGA Rp. {bet}\n"
-                f"💸 BAYAR Rp. {total_bet_rupiah}\n"
-                f"💰 SALDO Rp. {saldo}\n"
-                f"⌚ {wib()}"
-            )
-            kirim_telegram_log(pesan_gagal)
-
-            context.close()
-            browser.close()
-            continue  # Lanjut ke site berikutnya
+        context.close()
+        browser.close()
+        return True  # sukses
+    except Exception as e:
+        print(f"❌ Error di {label}: {e}")
+        pesan = (
+            "[GAGAL]\n"
+            f"{label}\n"
+            f"❌ Error: {str(e)}\n"
+            f"⌚ {waktu_wib()}"
+        )
+        kirim_telegram_log(pesan)
+        return False  # gagal
 
 if __name__ == "__main__":
+    semua_site = baca_file("site.txt").splitlines()
+    error_detected = False
+    sukses_site = []
+    gagal_site = []
+
     with sync_playwright() as playwright:
-        run(playwright)
+        for site in semua_site:
+            if site.strip() == "":
+                continue
+            result = run_for_site(playwright, site.strip())
+            if result:
+                sukses_site.append(site)
+            else:
+                gagal_site.append(site)
+                error_detected = True
+
+    # Summary akhir
+    summary = (
+        f"📋 Summary Taruhan\n"
+        f"✅ Sukses: {len(sukses_site)} site\n"
+        f"❌ Gagal: {len(gagal_site)} site\n"
+        f"⌚ {waktu_wib()}"
+    )
+    kirim_telegram_log(summary)
+
+    if error_detected:
+        sys.exit(1)
+    else:
+        sys.exit(0)
