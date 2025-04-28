@@ -41,15 +41,17 @@ def send_telegram(message):
 def process_site(playwright, domain, username):
     print(f"Memproses: {domain}")
 
-    browser = playwright.chromium.launch(headless=True)
-    context = browser.new_context()
+    browser = playwright.chromium.launch(headless=False)
+    context = browser.new_context(**playwright.devices["Pixel 7"])
     page = context.new_page()
     
     try:
         page.goto(f"https://{domain}/lite", timeout=60000)
 
         # Login
+        page.locator("#entered_login").click()
         page.locator("#entered_login").fill(username)
+        page.locator("#entered_password").click()
         page.locator("#entered_password").fill(PASSWORD)
         page.get_by_role("button", name="Login").click()
 
