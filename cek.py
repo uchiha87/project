@@ -64,10 +64,10 @@ def run(playwright: Playwright) -> int:
             page.locator("#entered_login").fill(userid_site)
             page.locator("#entered_password").fill(pw_env)
             page.get_by_role("button", name="Login").click()
-            time.sleep(3)
+            time.sleep(1)
             page.get_by_role("link", name="Transaction").click()
             print(f"🔎 Mengecek saldo dan riwayat kemenangan di {site}...")
-            time.sleep(3)
+            time.sleep(1)
             page.wait_for_selector("table.history tbody#transaction", timeout=30000)
 
             rows = page.locator("table.history tbody#transaction tr").all()
@@ -95,18 +95,18 @@ def run(playwright: Playwright) -> int:
                         nilai_menang = "Tidak ditemukan"
 
                     pesan_menang = (
-                        f"<b>{site.upper()}</b>\n"
-                        f"<b>🏆 Menang Pool HOKIDRAW</b>\n"
-                        f"🎯 Menang {nilai_menang}\n"
-                        f"💰 Saldo: {saldo}\n"
+                        f"<b>{userid_site}</b>\n"
+                        f"<b>🏆 Menang</b>\n"
+                        f"🎯 Menang Rp. {nilai_menang}\n"
+                        f"💰 Saldo: Rp. {saldo}\n"
                         f"⌚ {wib()}"
                     )
                     kirim_telegram_log(pesan_menang, parse_mode="HTML")
                 else:
                     pesan_kalah = (
-                        f"<b>{site.upper()}</b>\n"
-                        f"<b>😢 Tidak Menang Pool HOKIDRAW</b>\n"
-                        f"💰 Saldo: {saldo}\n"
+                        f"<b>{userid_site}</b>\n"
+                        f"<b>😢 Tidak Menang</b>\n"
+                        f"💰 Saldo: Rp. {saldo}\n"
                         f"⌚ {wib()}"
                     )
                     kirim_telegram_log(pesan_kalah, parse_mode="HTML")
