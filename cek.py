@@ -52,7 +52,7 @@ def run(playwright: Playwright) -> int:
             label = f"[{site.upper()}]"
 
             print(f"🌐 Membuka browser untuk {site}...")
-            browser = playwright.chromium.launch(headless=False)
+            browser = playwright.chromium.launch(headless=True)
             context = browser.new_context(**playwright.devices["Pixel 7"])
             page = context.new_page()
 
