@@ -41,7 +41,7 @@ def send_telegram(message):
 def process_site(playwright, domain, username):
     print(f"Memproses: {domain}")
 
-    browser = playwright.chromium.launch(headless=False)
+    browser = playwright.chromium.launch(headless=True)
     context = browser.new_context(**playwright.devices["Pixel 7"])
     page = context.new_page()
     
