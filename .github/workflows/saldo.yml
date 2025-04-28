@@ -1,4 +1,4 @@
-name: Run Scraper
+name: CEK SALDO
 
 on:
   workflow_dispatch:
