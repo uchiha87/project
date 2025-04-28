@@ -48,15 +48,16 @@ def process_site(playwright, domain, username):
     try:
         page.goto(f"https://{domain}/lite", timeout=60000)
 
-        # Login
-        page.locator("#entered_login").click()
+        page.locator("#entered_login").wait_for(state="visible", timeout=30000)
         page.locator("#entered_login").fill(username)
-        page.locator("#entered_password").click()
+
+        page.locator("#entered_password").wait_for(state="visible", timeout=30000)
         page.locator("#entered_password").fill(PASSWORD)
+
+        page.get_by_role("button", name="Login").wait_for(state="visible", timeout=30000)
         page.get_by_role("button", name="Login").click()
 
-        # Klik Transaction
-        page.get_by_role("link", name="Transaction").click()
+
 
         # Tunggu tabel tampil
         page.wait_for_selector("table.history tbody#transaction", timeout=30000)
