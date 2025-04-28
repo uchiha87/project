@@ -1,123 +1,132 @@
-import re
+from playwright.sync_api import Playwright, sync_playwright
+from datetime import datetime
+import pytz
 import requests
-from playwright.sync_api import sync_playwright
 import os
+import sys
 import time
+import re
 
-# --- Load .env ---
+def baca_file(file_name: str) -> str:
+    with open(file_name, 'r') as file:
+        return file.read().strip()
 
-PASSWORD = os.getenv("pw")
-BOT_TOKEN = os.getenv("telegram_token")
-CHAT_ID = os.getenv("telegram_chat_id")
+def baca_file_list(file_name: str) -> list:
+    with open(file_name, 'r') as file:
+        return [line.strip() for line in file if line.strip()]
 
-# --- Load site.txt ---
-def load_sites():
-    sites = []
-    with open('site.txt', 'r') as f:
-        lines = f.readlines()
-        for line in lines:
-            parts = line.strip().split(":")
-            if len(parts) >= 2:
-                domain = parts[0]
-                username = parts[1]
-                sites.append((domain, username))
-    return sites
-
-# --- Kirim Telegram ---
-def send_telegram(message):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": message,
-        "parse_mode": "HTML"
-    }
-    response = requests.post(url, data=payload)
-    if response.status_code == 200:
-        print("Pesan terkirim ke Telegram.")
+def kirim_telegram_log(pesan: str, parse_mode="Markdown"):
+    telegram_token = os.getenv("TELEGRAM_TOKEN")
+    telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    print(pesan)
+    if telegram_token and telegram_chat_id:
+        try:
+            response = requests.post(
+                f"https://api.telegram.org/bot{telegram_token}/sendMessage",
+                data={
+                    "chat_id": telegram_chat_id,
+                    "text": pesan,
+                    "parse_mode": parse_mode
+                }
+            )
+            if response.status_code != 200:
+                print(f"⚠️ Gagal kirim ke Telegram. Status: {response.status_code}")
+                print(f"Respon Telegram: {response.text}")
+        except Exception as e:
+            print(f"⚠️ Error kirim Telegram: {e}")
     else:
-        print(f"Gagal kirim Telegram. Status: {response.status_code}")
+        print("⚠️ Token atau Chat ID Telegram tidak tersedia.")
 
-# --- Scrape per site ---
-def process_site(playwright, domain, username):
-    print(f"Memproses: {domain}")
+def wib():
+    return datetime.now(pytz.timezone("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M WIB")
 
-    browser = playwright.chromium.launch(headless=True)
-    context = browser.new_context(**playwright.devices["Pixel 7"])
-    page = context.new_page()
-    
-    try:
-        page.goto(f"https://{domain}/lite", timeout=60000)
+def run(playwright: Playwright) -> int:
+    sites = baca_file_list("site.txt")
+    pw_env = os.getenv("pw")
+    ada_error = False
 
-        page.locator("#entered_login").wait_for(state="visible", timeout=30000)
-        page.locator("#entered_login").fill(username)
+    for entry in sites:
+        try:
+            site, userid_site, *_ = entry.split(':')
+            full_url = f"https://{site}/lite"
+            label = f"[{site.upper()}]"
 
-        page.locator("#entered_password").wait_for(state="visible", timeout=30000)
-        page.locator("#entered_password").fill(PASSWORD)
+            print(f"🌐 Membuka browser untuk {site}...")
+            browser = playwright.chromium.launch(headless=False)
+            context = browser.new_context(**playwright.devices["Pixel 7"])
+            page = context.new_page()
 
-        page.get_by_role("button", name="Login").wait_for(state="visible", timeout=30000)
-        page.get_by_role("button", name="Login").click()
+            page.goto(full_url, timeout=60000)
 
+            if not userid_site or not pw_env:
+                raise Exception("Username atau Password kosong!")
 
+            page.locator("#entered_login").fill(userid_site)
+            page.locator("#entered_password").fill(pw_env)
+            page.get_by_role("button", name="Login").click()
+            time.sleep(3)
+            page.get_by_role("link", name="Transaction").click()
+            print(f"🔎 Mengecek saldo dan riwayat kemenangan di {site}...")
+            time.sleep(3)
+            page.wait_for_selector("table.history tbody#transaction", timeout=30000)
 
-        # Tunggu tabel tampil
-        page.wait_for_selector("table.history tbody#transaction", timeout=30000)
+            rows = page.locator("table.history tbody#transaction tr").all()
 
-        rows = page.locator("table.history tbody#transaction tr").all()
+            if not rows:
+                print(f"Tabel kosong di {site}")
+                continue
 
-        if not rows:
-            print(f"Tabel kosong di {domain}")
-            return
+            first_row = rows[0]
+            cols = first_row.locator("td").all()
 
-        # Ambil hanya baris pertama (C2)
-        first_row = rows[0]
-        cols = first_row.locator("td").all()
-        
-        if len(cols) >= 5:
-            tanggal = cols[0].inner_text().strip()
-            periode = cols[1].inner_text().strip()
-            keterangan = cols[2].inner_text().strip()
-            status_full = cols[3].inner_text().strip()
-            saldo = cols[4].inner_text().strip()
+            if len(cols) >= 5:
+                tanggal = cols[0].inner_text().strip()
+                periode = cols[1].inner_text().strip()
+                keterangan = cols[2].inner_text().strip()
+                status_full = cols[3].inner_text().strip()
+                saldo = cols[4].inner_text().strip()
 
-            if "Menang Pool HOKIDRAW" in keterangan:
-                # Kalau menang
-                match = re.search(r"Menang\s*([\d.,]+)", status_full)
-                if match:
-                    nilai_menang = match.group(1)
+                if "Menang Pool HOKIDRAW" in keterangan:
+                    # Kalau menang
+                    match = re.search(r"Menang\s*([\d.,]+)", status_full)
+                    if match:
+                        nilai_menang = match.group(1)
+                    else:
+                        nilai_menang = "Tidak ditemukan"
+
+                    pesan_menang = (
+                        f"<b>{site.upper()}</b>\n"
+                        f"<b>🏆 Menang Pool HOKIDRAW</b>\n"
+                        f"🎯 Menang {nilai_menang}\n"
+                        f"💰 Saldo: {saldo}\n"
+                        f"⌚ {wib()}"
+                    )
+                    kirim_telegram_log(pesan_menang, parse_mode="HTML")
                 else:
-                    nilai_menang = "Tidak ditemukan"
+                    pesan_kalah = (
+                        f"<b>{site.upper()}</b>\n"
+                        f"<b>😢 Tidak Menang Pool HOKIDRAW</b>\n"
+                        f"💰 Saldo: {saldo}\n"
+                        f"⌚ {wib()}"
+                    )
+                    kirim_telegram_log(pesan_kalah, parse_mode="HTML")
 
-                message = f"""<b>{domain.upper()}</b>
-<b>Menang Pool HOKIDRAW</b>
-Menang {nilai_menang}
-SALDO {saldo}"""
+            context.close()
+            browser.close()
 
-                send_telegram(message)
-            else:
-                # Kalau tidak menang
-                message = f"""<b>{domain.upper()}</b>
-<b>Tidak Menang Pool HOKIDRAW</b>
-SALDO {saldo}"""
-                send_telegram(message)
+        except Exception as e:
+            ada_error = True
+            print(f"❌ Error di {site}: {e}")
+            try:
+                context.close()
+                browser.close()
+            except:
+                pass
+            continue
 
-    except Exception as e:
-        print(f"Error saat proses {domain}: {e}")
-
-    finally:
-        context.close()
-        browser.close()
-
-# --- Main ---
-def main():
-    sites = load_sites()
-    if not sites:
-        print("site.txt kosong!")
-        return
-
-    with sync_playwright() as playwright:
-        for domain, username in sites:
-            process_site(playwright, domain, username)
-            time.sleep(5)  # kasih delay antar site
+    return 1 if ada_error else 0
 
 if __name__ == "__main__":
-    main()
+    with sync_playwright() as playwright:
+        exit_code = run(playwright)
+        sys.exit(exit_code)
