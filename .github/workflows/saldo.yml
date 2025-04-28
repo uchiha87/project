@@ -17,10 +17,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install playwright requests python-dotenv
-        
-    - name: Install Playwright Browsers
-      run: playwright install
+        pip install playwright requests python-dotenv pytz
+        playwright install chromium
 
 
     - name: Run script
