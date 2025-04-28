@@ -49,9 +49,7 @@ def process_site(playwright, domain, username):
         page.goto(f"https://{domain}/lite", timeout=60000)
 
         # Login
-        page.locator("#entered_login").click()
         page.locator("#entered_login").fill(username)
-        page.locator("#entered_password").click()
         page.locator("#entered_password").fill(PASSWORD)
         page.get_by_role("button", name="Login").click()
 
