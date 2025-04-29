@@ -22,7 +22,6 @@ def format_rupiah(angka):
     except:
         return angka
 
-
 def kirim_telegram_log(pesan: str, parse_mode="Markdown"):
     telegram_token = os.getenv("TELEGRAM_TOKEN")
     telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
@@ -57,7 +56,6 @@ def run(playwright: Playwright) -> int:
         try:
             site, userid_site, *_ = entry.split(':')
             full_url = f"https://{site}/lite"
-            label = f"[{site.upper()}]"
 
             print(f"🌐 Membuka browser untuk {site}...")
             browser = playwright.chromium.launch(headless=True)
@@ -88,25 +86,21 @@ def run(playwright: Playwright) -> int:
             cols = first_row.locator("td").all()
 
             if len(cols) >= 5:
-                tanggal = cols[0].inner_text().strip()
-                periode = cols[1].inner_text().strip()
+                raw_saldo = cols[4].inner_text().strip()
+                current_saldo = int(float(raw_saldo))
+
                 keterangan = cols[2].inner_text().strip()
                 status_full = cols[3].inner_text().strip()
-                saldo = cols[4].inner_text().strip()
 
                 if "Menang Pool HOKIDRAW" in keterangan:
-                    # Kalau menang
-                    match = re.search(r"Menang\s*([\d.,]+)", status_full)
-                    if match:
-                        nilai_menang = match.group(1)
-                    else:
-                        nilai_menang = "Tidak ditemukan"
+                    match = re.search(r"Menang\\s*([\d.,]+)", status_full)
+                    nilai_menang = match.group(1) if match else "Tidak ditemukan"
 
                     pesan_menang = (
                         f"<b>{userid_site}</b>\n"
                         f"<b>🏆 Menang</b>\n"
                         f"🎯 Menang {format_rupiah(nilai_menang)}\n"
-                        f"💰 Saldo: {format_rupiah(saldo)}\n"
+                        f"💰 Saldo: {format_rupiah(current_saldo)}\n"
                         f"⌚ {wib()}"
                     )
                     kirim_telegram_log(pesan_menang, parse_mode="HTML")
@@ -114,10 +108,39 @@ def run(playwright: Playwright) -> int:
                     pesan_kalah = (
                         f"<b>{userid_site}</b>\n"
                         f"<b>😢 Tidak Menang</b>\n"
-                        f"💰 Saldo: {format_rupiah(saldo)}\n"
+                        f"💰 Saldo: {format_rupiah(current_saldo)}\n"
                         f"⌚ {wib()}"
                     )
                     kirim_telegram_log(pesan_kalah, parse_mode="HTML")
+
+                # ==== AUTO WD LOGIC ====
+                try:
+                    if os.path.exists("autowd.txt"):
+                        autowd_config = baca_file("autowd.txt")
+                        if ':' in autowd_config:
+                            batas_str, wd_amount_str = autowd_config.split(":")
+                            batas_saldo = int(batas_str.strip())
+                            wd_amount = wd_amount_str.strip()
+
+                            if current_saldo >= batas_saldo:
+                                print(f"💳 Saldo {current_saldo} >= {batas_saldo}, melakukan auto withdraw {wd_amount}")
+                                page.get_by_role("link", name="Back to Menu").click()
+                                page.get_by_role("link", name="Withdraw").click()
+                                page.get_by_role("textbox", name="Withdraw").click()
+                                page.get_by_role("textbox", name="Withdraw").fill(wd_amount)
+                                page.get_by_role("button", name="Kirim").click()
+
+                                page.wait_for_selector("text=berhasil", timeout=15000)
+
+                                kirim_telegram_log(
+                                    f"<b>{userid_site}</b>\n"
+                                    f"✅ Auto WD {format_rupiah(wd_amount)} berhasil\n"
+                                    f"💰 Saldo sisa: {format_rupiah(current_saldo - int(wd_amount))}\n"
+                                    f"⌚ {wib()}",
+                                    parse_mode="HTML"
+                                )
+                except Exception as e:
+                    print(f"⚠️ Gagal auto WD: {e}")
 
             context.close()
             browser.close()
