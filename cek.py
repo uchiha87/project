@@ -125,10 +125,15 @@ def run(playwright: Playwright) -> int:
                             if current_saldo >= batas_saldo:
                                 print(f"💳 Saldo {current_saldo} >= {batas_saldo}, melakukan auto withdraw {wd_amount}")
                                 page.get_by_role("link", name="Back to Menu").click()
+                                time.sleep(1)
                                 page.get_by_role("link", name="Withdraw").click()
+                                time.sleep(1)
                                 page.get_by_role("textbox", name="Withdraw").click()
+                                time.sleep(1)
                                 page.get_by_role("textbox", name="Withdraw").fill(wd_amount)
+                                time.sleep(1)
                                 page.get_by_role("button", name="Kirim").click()
+                                time.sleep(2)
 
                                 page.wait_for_selector("text=berhasil", timeout=15000)
 
