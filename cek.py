@@ -93,7 +93,7 @@ def run(playwright: Playwright) -> int:
                 status_full = cols[3].inner_text().strip()
 
                 if "Menang Pool HOKIDRAW" in keterangan:
-                    match = re.search(r"Menang\\s*([\d.,]+)", status_full)
+                    match = re.search(r"Menang\s*([\d.,]+)", status_full)
                     nilai_menang = match.group(1) if match else "Tidak ditemukan"
 
                     pesan_menang = (
