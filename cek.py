@@ -15,6 +15,14 @@ def baca_file_list(file_name: str) -> list:
     with open(file_name, 'r') as file:
         return [line.strip() for line in file if line.strip()]
 
+def format_rupiah(angka):
+    try:
+        angka = float(angka)
+        return f"Rp {angka:,.0f}".replace(",", ".")
+    except:
+        return angka
+
+
 def kirim_telegram_log(pesan: str, parse_mode="Markdown"):
     telegram_token = os.getenv("TELEGRAM_TOKEN")
     telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
@@ -97,8 +105,8 @@ def run(playwright: Playwright) -> int:
                     pesan_menang = (
                         f"<b>{userid_site}</b>\n"
                         f"<b>🏆 Menang</b>\n"
-                        f"🎯 Menang Rp. {nilai_menang}\n"
-                        f"💰 Saldo: Rp. {saldo}\n"
+                        f"🎯 Menang {format_rupiah(nilai_menang)}\n"
+                        f"💰 Saldo: {format_rupiah(saldo)}\n"
                         f"⌚ {wib()}"
                     )
                     kirim_telegram_log(pesan_menang, parse_mode="HTML")
@@ -106,7 +114,7 @@ def run(playwright: Playwright) -> int:
                     pesan_kalah = (
                         f"<b>{userid_site}</b>\n"
                         f"<b>😢 Tidak Menang</b>\n"
-                        f"💰 Saldo: Rp. {saldo}\n"
+                        f"💰 Saldo: {format_rupiah(saldo)}\n"
                         f"⌚ {wib()}"
                     )
                     kirim_telegram_log(pesan_kalah, parse_mode="HTML")
