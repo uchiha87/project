@@ -15,6 +15,14 @@ jobs:
       with:
         python-version: '3.10'
 
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
         pip install playwright requests python-dotenv pytz
@@ -31,7 +39,6 @@ jobs:
     - name: Set WIB time
       id: set_wib_time
       run: |
-        # ambil waktu sekarang (UTC) lalu tambah 7 jam
         TIME_WIB=$(date -u --date='+7 hours' '+%Y-%m-%d %H:%M:%S')
         echo "time_wib=$TIME_WIB" >> $GITHUB_OUTPUT
 
